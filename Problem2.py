@@ -3,7 +3,6 @@ import pandas as pd
 dF=pd.read_excel("ExcelData.xlsx",'pythonF')
 
 # Range of Grades
-
 zeroGrade = dF[dF['Grade'] == 0]
 zeroGradeRange = zeroGrade.shape[0]
 print(f"0 : {zeroGradeRange}")
