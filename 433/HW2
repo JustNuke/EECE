@@ -1,0 +1,142 @@
+# Import Python’s SQLite supporting library which includes the necessary drivers to connect to SQLite
+import sqlite3
+
+# Create (if it does not already exist) the database that will store the desired relations
+conn = sqlite3.connect('Hospital')
+# Create a data structure that still store data extracted from the database. This is typically called a cursor.
+cursor = conn.cursor()
+# Create the desired relations. Here we are creating a relation that contains patients information
+cursor.execute('''
+ CREATE TABLE if not exists CovidPatients(PatientID Integer primary key, PatientName TEXT,SSN TEXT,
+ OxygenLevel Integer,Vaccines_Taken_No Integer) ''')
+# Populating the database with data with error handling: Data insertion if it does not already exist
+try:
+# Insert 3 patients
+  cursor.execute('''INSERT INTO CovidPatients values(1,'Fadi Samad','6534A',77,1)''')
+  cursor.execute('''INSERT INTO CovidPatients values(2, 'Bassem Lotfi','4689B',79,2)''')
+  cursor.execute('''INSERT INTO CovidPatients values(3,'Lama ElAmir','7485C',82,0)''')
+# Save the data in the database, be sure to indent
+  conn.commit()
+#Error message in case data already exists to avoid an error for multiple insertion attempts
+except Exception as e:
+    print('Not inserted data, already inserted')
+# extracting data from the database
+# Defining and executing SQL commands
+SQL = 'SELECT * from CovidPatients'
+cursor.execute(SQL)
+results = cursor.fetchall()
+avg = 0
+OxygenLevel = []
+PatientNames = []
+OxygenAboveAvg = []
+OxygenBelowAvg = []
+NotTakenVaccine = 0
+for i in range(len(results)):
+  print(results[i])
+  val = results[i][3]
+  avg += val
+  OxygenLevel.append(results[i][3])
+  PatientNames.append(results[i][1])
+  if results[i][4] == 0:
+     NotTakenVaccine += 1
+
+for i in range(len(results)):
+    if results[i][3] > avg/len(results):
+      OxygenAboveAvg.append(results[i][1])
+    else:
+       OxygenBelowAvg.append(results[i][1])
+print("Averyage Oxyegen : ", avg/len(results))
+print("Oxygen level availabe :", OxygenLevel)
+print("Patient names: ", PatientNames)
+print("Highest name covid: ", max(OxygenAboveAvg))
+print("Highest name above average covid :", OxygenAboveAvg)
+print("Highest name below average covid :", OxygenBelowAvg)
+print("Number of patients who did not take the vaccine :", NotTakenVaccine)
+
+def checkIfPatientEists(patients, name, ssn):
+    for patient in patients:
+        if patient[1] == name or patient[2] == ssn:
+            return True
+    return False
+
+def insert_patient():
+    try:
+        patient_name = input("Enter Patient Name: ")
+        ssn = input("Enter SSN: ")
+        oxygen_level = int(input("Enter Oxygen Level: "))
+        vaccines_taken = int(input("Enter Number of Vaccines Taken: "))
+        
+        cursor.execute("SELECT * FROM CovidPatients")
+        existing_patients = cursor.fetchall()
+ 
+        if checkIfPatientEists(existing_patients, patient_name, ssn):
+            print("Error: Patient with this name or SSN already exists.")
+        else:
+            cursor.execute('''INSERT INTO CovidPatients (PatientName, SSN, OxygenLevel, Vaccines_Taken_No) 
+                              VALUES (?, ?, ?, ?)''', (patient_name, ssn, oxygen_level, vaccines_taken))
+            conn.commit()  
+            print("Patient inserted successfully.")
+            
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+cursor.execute('''
+CREATE TABLE IF NOT EXISTS CovidRoom (
+    RoomID INTEGER PRIMARY KEY,
+    RoomUse TEXT,
+    FloorNo INTEGER
+)
+''')
+
+# Insert three rows into "CovidRoom"
+cursor.execute("INSERT INTO CovidRoom (RoomID, RoomUse, FloorNo) VALUES (1, 'ICU', 1)")
+cursor.execute("INSERT INTO CovidRoom (RoomID, RoomUse, FloorNo) VALUES (2, 'Recovery', 2)")
+cursor.execute("INSERT INTO CovidRoom (RoomID, RoomUse, FloorNo) VALUES (3, 'Isolation', 3)")
+
+conn.commit()
+
+cursor.execute('''
+ALTER TABLE CovidPatients
+ADD COLUMN RoomID INTEGER
+''')
+
+conn.commit()
+
+def update_patient_room(patient_id, room_id):
+    # Check if the RoomID exists in CovidRoom
+    cursor.execute("SELECT * FROM CovidRoom WHERE RoomID = ?", (room_id,))
+    room_exists = cursor.fetchone()
+
+    if room_exists:
+        # If RoomID exists, update the patient's RoomID
+        cursor.execute('''
+        UPDATE CovidPatients
+        SET RoomID = ?
+        WHERE PatientID = ?
+        ''', (room_id, patient_id))
+        conn.commit()
+        print(f"Patient {patient_id} assigned to Room {room_id}.")
+    else:
+        # Print error message if RoomID does not exist
+        print(f"Error: RoomID {room_id} does not exist in CovidRoom.")
+
+update_patient_room(1, 2)
+
+# Display the updated "CovidPatients" table
+cursor.execute("SELECT * FROM CovidPatients")
+patients = cursor.fetchall()
+print("\nCovidPatients Table after update:")
+for patient in patients:
+    print(patient)
+
+conn.close()
+
+# insert_patient()
+
+# SQL = 'SELECT * FROM CovidPatients'
+# cursor.execute(SQL)
+# results = cursor.fetchall()
+
+# for row in results:
+#     print(row)
+
